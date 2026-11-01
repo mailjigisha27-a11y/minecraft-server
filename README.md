@@ -3,7 +3,7 @@
 A Python script that runs a Minecraft Java server and looks after it.
 
 ## Features
-- Starts the server with `server.jar`
+- Simple menu: start the server, make a backup, show backups, or quit
 - Saves a zip backup of the `world` folder when the server stops
 - Keeps only the last 5 backups
 - Restarts the server automatically if it crashes (up to 3 times)
@@ -20,4 +20,8 @@ A Python script that runs a Minecraft Java server and looks after it.
 
    python main.py
 
-4. To stop the server safely, type `stop` in the terminal.
+4. Type a number from the menu and press Enter.
+5. To stop the server safely, type `stop` in the terminal.
+
+## Note
+Do not upload `server.jar`, the `world` folder, or player files to GitHub. The `.gitignore` file hides them.

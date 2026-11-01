@@ -1,0 +1,9 @@
+libraries/
+logs/
+versions/
+world/
+backups/
+*.jar
+*.json
+*.properties
+eula.txt

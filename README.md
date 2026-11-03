@@ -42,16 +42,6 @@ python main.py
 ```
 
 5. To stop the server safely, type `stop` in the terminal and press Enter.
-```
-=== Minecraft Server Manager ===
-1. Start server
-2. Make a backup now
-3. Show backups
-4. Restore a backup
-5. Show recent log
-6. Quit
-Choose 1-6:
-```
 
 ## Settings
 

@@ -37,7 +37,8 @@ python main.py
 2. Make a backup now
 3. Show backups
 4. Restore a backup
-5. Quit
+5. Show recent log
+6. Quit
 ```
 
 5. To stop the server safely, type `stop` in the terminal and press Enter.

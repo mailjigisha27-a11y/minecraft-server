@@ -45,6 +45,25 @@ def log(message):
         pass  # if the log cannot be written, the script keeps working
 
 
+def show_log(lines=20):
+    """Show the last few lines of manager.log."""
+    if not os.path.isfile(LOG_FILE):
+        print("No log yet.")
+        return
+    try:
+        with open(LOG_FILE, "r", encoding="utf-8") as f:
+            last = f.readlines()[-lines:]
+    except OSError as error:
+        print(f"Could not read the log: {error}")
+        return
+    if not last:
+        print("The log is empty.")
+        return
+    print(f"\nLast {len(last)} log lines:")
+    for line in last:
+        print("  " + line.rstrip())
+
+
 def load_config():
     """Read settings from config.json. Create it if missing. Bad values use the default."""
     config = dict(DEFAULTS)
@@ -262,8 +281,9 @@ def main():
         print("2. Make a backup now")
         print("3. Show backups")
         print("4. Restore a backup")
-        print("5. Quit")
-        choice = input("Choose 1-5: ").strip()
+        print("5. Show recent log")
+        print("6. Quit")
+        choice = input("Choose 1-6: ").strip()
 
         if choice == "1":
             start_server()
@@ -274,11 +294,13 @@ def main():
         elif choice == "4":
             restore_backup()
         elif choice == "5":
+            show_log()
+        elif choice == "6":
             log("Manager closed.")
             print("Goodbye!")
             break
         else:
-            print("Please type 1, 2, 3, 4, or 5.")
+            print("Please type 1, 2, 3, 4, 5, or 6.")
 
 
 if __name__ == "__main__":

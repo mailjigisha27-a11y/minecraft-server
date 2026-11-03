@@ -26,11 +26,11 @@ backup_lock = threading.Lock()
 
 
 def backup_world():
-    """Save a zip copy of the world folder into the backups folder."""
+    """Save a zip copy of the world folder. Returns True if it worked."""
     with backup_lock:
         if not os.path.isdir("world"):
             print("No 'world' folder found, skipping backup.")
-            return
+            return True
 
         os.makedirs("backups", exist_ok=True)
         name = datetime.now().strftime("world_%Y-%m-%d_%H-%M-%S")
@@ -44,7 +44,7 @@ def backup_world():
             print(f"Backup saved: backups/{name}.zip")
         except Exception as error:
             print(f"Backup failed: {error}")
-            return
+            return False
         finally:
             shutil.rmtree(temp_copy, ignore_errors=True)
 
@@ -53,6 +53,7 @@ def backup_world():
         for old in zips[:-KEEP_BACKUPS]:
             os.remove(os.path.join("backups", old))
             print(f"Deleted old backup: {old}")
+        return True
 
 
 def backup_loop(stop_event):
@@ -62,18 +63,76 @@ def backup_loop(stop_event):
         backup_world()
 
 
+def get_backups():
+    """Return the backup file names, oldest first."""
+    if not os.path.isdir("backups"):
+        return []
+    return sorted(f for f in os.listdir("backups") if f.endswith(".zip"))
+
+
 def list_backups():
     """Show all backup files."""
-    if not os.path.isdir("backups"):
-        print("No backups yet.")
-        return
-    zips = sorted(f for f in os.listdir("backups") if f.endswith(".zip"))
+    zips = get_backups()
     if not zips:
         print("No backups yet.")
         return
     for z in zips:
         size_mb = os.path.getsize(os.path.join("backups", z)) / (1024 * 1024)
         print(f"  {z}  ({size_mb:.1f} MB)")
+
+
+def restore_backup():
+    """Replace the current world with a chosen backup."""
+    zips = get_backups()
+    if not zips:
+        print("No backups to restore.")
+        return
+
+    print("\nAvailable backups (newest at the bottom):")
+    for number, z in enumerate(zips, start=1):
+        size_mb = os.path.getsize(os.path.join("backups", z)) / (1024 * 1024)
+        print(f"  {number}. {z}  ({size_mb:.1f} MB)")
+
+    choice = input("Type the number of the backup to restore (or press Enter to cancel): ").strip()
+    if not choice:
+        print("Cancelled.")
+        return
+    if not choice.isdigit() or not 1 <= int(choice) <= len(zips):
+        print("That is not a valid number. Nothing was changed.")
+        return
+
+    chosen = zips[int(choice) - 1]
+    print(f"\nThis will REPLACE your current world with: {chosen}")
+    print("A safety backup of your current world will be saved first.")
+    if input("Type yes to continue: ").strip().lower() != "yes":
+        print("Cancelled. Nothing was changed.")
+        return
+
+    zip_path = os.path.join("backups", chosen)
+    temp_dir = "world_restore_temp"
+
+    try:
+        # 1. Unpack the chosen backup first, so a bad zip never touches your world
+        shutil.rmtree(temp_dir, ignore_errors=True)
+        shutil.unpack_archive(zip_path, temp_dir)
+
+        # 2. Save a safety backup of the current world
+        print("Saving a safety backup of the current world...")
+        if not backup_world():
+            print("Safety backup failed, so the restore was stopped. Nothing was changed.")
+            shutil.rmtree(temp_dir, ignore_errors=True)
+            return
+
+        # 3. Swap the worlds
+        if os.path.isdir("world"):
+            shutil.rmtree("world")
+        os.rename(temp_dir, "world")
+        print(f"Restored: {chosen}")
+        print("Choose 1 to start the server with the restored world.")
+    except Exception as error:
+        print(f"Restore failed: {error}")
+        print("Your safety backup is in the backups folder.")
+        shutil.rmtree(temp_dir, ignore_errors=True)
 
 
 def start_server():
@@ -125,8 +184,9 @@ def main():
         print("1. Start server")
         print("2. Make a backup now")
         print("3. Show backups")
-        print("4. Quit")
-        choice = input("Choose 1-4: ").strip()
+        print("4. Restore a backup")
+        print("5. Quit")
+        choice = input("Choose 1-5: ").strip()
 
         if choice == "1":
             start_server()
@@ -135,10 +195,12 @@ def main():
         elif choice == "3":
             list_backups()
         elif choice == "4":
+            restore_backup()
+        elif choice == "5":
             print("Goodbye!")
             break
         else:
-            print("Please type 1, 2, 3, or 4.")
+            print("Please type 1, 2, 3, 4, or 5.")
 
 
 if __name__ == "__main__":

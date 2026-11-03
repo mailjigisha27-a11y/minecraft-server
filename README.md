@@ -3,27 +3,59 @@
 A Python script that runs a Minecraft Java server and looks after it.
 
 ## Features
-- Simple menu: start the server, make a backup, show backups, or quit
-- Saves a zip backup of the `world` folder when the server stops
-- Keeps only the last 5 backups
+
+- Start the server from a simple menu
 - Restarts the server automatically if it crashes (up to 3 times)
+- Saves a world backup every 30 minutes while the server runs
+- Saves a backup when the server stops
+- Keeps only the 10 newest backups
+- Restore a backup from the menu (a safety backup is saved first)
 
-## Requirements
+## What you need
+
 - Python 3
-- Java (21 or newer)
-- `server.jar` from minecraft.net, placed in the same folder as `main.py`
+- Java (check with `java -version`)
+- A Minecraft Java `server.jar` in the same folder as `main.py`
+- `eula.txt` set to `eula=true`
 
-## How to run
-1. Put `main.py` next to `server.jar`.
+## How to use
+
+1. Put `main.py` in your Minecraft server folder.
 2. Open a terminal in that folder.
 3. Run:
 
+```
+python main.py
+```
 
-   python main.py
+4. Choose an option from the menu:
 
-5. Type a number from the menu and press Enter.
-6. To stop the server safely, type `stop` in the terminal.
+```
+1. Start server
+2. Make a backup now
+3. Show backups
+4. Restore a backup
+5. Quit
+```
 
-## Note
-Do not upload `server.jar`, the `world` folder, or player files to GitHub. The `.gitignore` file hides them.
-- Automatic world backup every 30 minutes while the server runs
+5. To stop the server safely, type `stop` in the terminal and press Enter.
+
+## Settings
+
+You can change these lines at the top of `main.py`:
+
+| Setting | Meaning | Default |
+|---|---|---|
+| `MAX_RESTARTS` | How many times to restart after a crash | 3 |
+| `KEEP_BACKUPS` | How many backups to keep | 10 |
+| `BACKUP_EVERY_MINUTES` | Time between automatic backups | 30 |
+
+## Notes
+
+- Backups are saved in the `backups` folder as zip files.
+- Restore only works from the menu, when the server is stopped.
+- Server files and player data are not uploaded to GitHub.
+
+## Built with
+
+Python, `subprocess`, `shutil`, `threading`

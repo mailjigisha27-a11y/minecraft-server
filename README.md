@@ -12,6 +12,7 @@ A Python script that runs a Minecraft Java server and looks after it.
 - Restore a backup from the menu (a safety backup is saved first)
 - Writes a log file (`manager.log`) with the date and time of every backup, crash, and restore
 - Settings in a simple `config.json` file, so you never need to edit the code
+- Checks that Java, the server file, and the EULA are ready before starting, and tells you what is missing
 
 ## What you need
 

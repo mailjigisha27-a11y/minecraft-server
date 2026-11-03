@@ -120,6 +120,35 @@ command = [
 ]
 
 
+def check_setup():
+    """Check Java, the server file and the EULA. Returns True if all is ready."""
+    problems = []
+
+    if shutil.which("java") is None:
+        problems.append("Java was not found. Install Java, then run `java -version` to check.")
+
+    jar = config["server_jar"]
+    if not os.path.isfile(jar):
+        problems.append(f"The server file '{jar}' was not found in this folder.")
+
+    # eula.txt is created by the server the first time it runs, so a missing file is fine
+    if os.path.isfile("eula.txt"):
+        try:
+            with open("eula.txt", "r", encoding="utf-8") as f:
+                text = f.read().lower().replace(" ", "")
+            if "eula=true" not in text:
+                problems.append("The EULA is not accepted. Open eula.txt and change eula=false to eula=true.")
+        except OSError as error:
+            problems.append(f"Could not read eula.txt ({error}).")
+
+    if problems:
+        log("The server cannot start yet:")
+        for problem in problems:
+            log(f"  - {problem}")
+        return False
+    return True
+
+
 def backup_world():
     """Save a zip copy of the world folder. Returns True if it worked."""
     with backup_lock:
@@ -231,7 +260,10 @@ def restore_backup():
 
 
 def start_server():
-    """Run the server. Restart it if it crashes. Back up on a timer and when it stops."""
+    """Check the setup, run the server, restart it if it crashes, and back up."""
+    if not check_setup():
+        return
+
     log("Starting server. Type 'stop' here to stop it safely.")
     print(f"A backup will be saved every {BACKUP_EVERY_MINUTES} minutes.")
 

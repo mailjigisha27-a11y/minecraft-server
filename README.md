@@ -42,6 +42,7 @@ python main.py
 ```
 
 5. To stop the server safely, type `stop` in the terminal and press Enter.
+![Menu screenshot](menu.png)
 
 ## Settings
 

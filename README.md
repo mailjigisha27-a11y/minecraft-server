@@ -10,6 +10,7 @@ A Python script that runs a Minecraft Java server and looks after it.
 - Saves a backup when the server stops
 - Keeps only the 10 newest backups
 - Restore a backup from the menu (a safety backup is saved first)
+- Writes a log file (`manager.log`) with the date and time of every backup, crash, and restore
 
 ## What you need
 
@@ -53,6 +54,7 @@ You can change these lines at the top of `main.py`:
 ## Notes
 
 - Backups are saved in the `backups` folder as zip files.
+- The log file stays on your computer and is not uploaded to GitHub.
 - Restore only works from the menu, when the server is stopped.
 - Server files and player data are not uploaded to GitHub.
 

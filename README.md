@@ -18,10 +18,12 @@ A Python script that runs a Minecraft Java server and looks after it.
 2. Open a terminal in that folder.
 3. Run:
 
+
    python main.py
 
-4. Type a number from the menu and press Enter.
-5. To stop the server safely, type `stop` in the terminal.
+5. Type a number from the menu and press Enter.
+6. To stop the server safely, type `stop` in the terminal.
 
 ## Note
 Do not upload `server.jar`, the `world` folder, or player files to GitHub. The `.gitignore` file hides them.
+- Automatic world backup every 30 minutes while the server runs

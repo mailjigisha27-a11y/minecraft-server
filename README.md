@@ -80,3 +80,12 @@ If a value is not valid, the script tells you and uses the default value instead
 ## Built with
 
 Python, `subprocess`, `shutil`, `threading`, `json`
+## Tests
+
+Run the automated tests with:
+
+```
+python -m unittest -v
+```
+
+The tests check that `config.json` is read correctly and that wrong values fall back to the defaults. Each test uses temporary files.

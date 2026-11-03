@@ -9,3 +9,4 @@ backups/
 eula.txt
 manager.log
 !config.json
+__pycache__/

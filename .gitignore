@@ -8,3 +8,4 @@ backups/
 *.properties
 eula.txt
 manager.log
+!config.json

@@ -1,0 +1,8 @@
+{
+    "max_restarts": 3,
+    "keep_backups": 10,
+    "backup_every_minutes": 30,
+    "max_memory": "2G",
+    "min_memory": "1G",
+    "server_jar": "server.jar"
+}

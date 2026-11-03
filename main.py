@@ -1,6 +1,8 @@
 import subprocess
 import sys
 import os
+import re
+import json
 import shutil
 import time
 import threading
@@ -9,18 +11,21 @@ from datetime import datetime
 # Always run from the folder this script is in
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-MAX_RESTARTS = 3          # how many times to restart after a crash
-KEEP_BACKUPS = 10         # how many backup zips to keep
-BACKUP_EVERY_MINUTES = 30 # automatic backup while the server runs
-LOG_FILE = "manager.log"  # the log file
+LOG_FILE = "manager.log"       # the log file
+CONFIG_FILE = "config.json"    # the settings file
 
-command = [
-    "java",
-    "-Xmx2G",        # max memory: 2 GB
-    "-Xms1G",        # starting memory: 1 GB
-    "-jar", "server.jar",
-    "nogui",
-]
+# Used when config.json is missing, or when a value in it is not valid
+DEFAULTS = {
+    "max_restarts": 3,           # how many times to restart after a crash
+    "keep_backups": 10,          # how many backup zips to keep
+    "backup_every_minutes": 30,  # automatic backup while the server runs
+    "max_memory": "2G",          # max memory for the server
+    "min_memory": "1G",          # starting memory for the server
+    "server_jar": "server.jar",  # name of the server file
+}
+
+# Smallest allowed number for each number setting
+MIN_VALUES = {"max_restarts": 0, "keep_backups": 1, "backup_every_minutes": 1}
 
 # Makes sure two backups never run at the same time
 backup_lock = threading.Lock()
@@ -38,6 +43,62 @@ def log(message):
                 f.write(f"[{stamp}] {message.strip()}\n")
     except OSError:
         pass  # if the log cannot be written, the script keeps working
+
+
+def load_config():
+    """Read settings from config.json. Create it if missing. Bad values use the default."""
+    config = dict(DEFAULTS)
+
+    if not os.path.isfile(CONFIG_FILE):
+        try:
+            with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+                json.dump(DEFAULTS, f, indent=4)
+            log("Created config.json with the default settings.")
+        except OSError as error:
+            log(f"Could not create config.json ({error}). Using default settings.")
+        return config
+
+    try:
+        with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+            user = json.load(f)
+        if not isinstance(user, dict):
+            raise ValueError("the file must contain a JSON object")
+    except (OSError, ValueError) as error:
+        log(f"Could not read config.json ({error}). Using default settings.")
+        return config
+
+    for key, default in DEFAULTS.items():
+        if key not in user:
+            continue
+        value = user[key]
+
+        if key in MIN_VALUES:
+            ok = isinstance(value, int) and not isinstance(value, bool) and value >= MIN_VALUES[key]
+        elif key in ("max_memory", "min_memory"):
+            ok = isinstance(value, str) and re.fullmatch(r"\d+[MmGg]", value) is not None
+        else:
+            ok = isinstance(value, str) and value.strip() != ""
+
+        if ok:
+            config[key] = value
+        else:
+            log(f"Setting '{key}' in config.json is not valid. Using {default!r} instead.")
+
+    return config
+
+
+config = load_config()
+MAX_RESTARTS = config["max_restarts"]
+KEEP_BACKUPS = config["keep_backups"]
+BACKUP_EVERY_MINUTES = config["backup_every_minutes"]
+
+command = [
+    "java",
+    f"-Xmx{config['max_memory']}",
+    f"-Xms{config['min_memory']}",
+    "-jar", config["server_jar"],
+    "nogui",
+]
 
 
 def backup_world():
@@ -151,7 +212,7 @@ def restore_backup():
 
 
 def start_server():
-    """Run the server. Restart it if it crashes. Back up every 30 minutes and when it stops."""
+    """Run the server. Restart it if it crashes. Back up on a timer and when it stops."""
     log("Starting server. Type 'stop' here to stop it safely.")
     print(f"A backup will be saved every {BACKUP_EVERY_MINUTES} minutes.")
 

@@ -12,6 +12,7 @@ os.chdir(os.path.dirname(os.path.abspath(__file__)))
 MAX_RESTARTS = 3          # how many times to restart after a crash
 KEEP_BACKUPS = 10         # how many backup zips to keep
 BACKUP_EVERY_MINUTES = 30 # automatic backup while the server runs
+LOG_FILE = "manager.log"  # the log file
 
 command = [
     "java",
@@ -23,13 +24,27 @@ command = [
 
 # Makes sure two backups never run at the same time
 backup_lock = threading.Lock()
+# Makes sure two messages are never written to the log at the same time
+log_lock = threading.Lock()
+
+
+def log(message):
+    """Show a message on screen and also save it in manager.log with the time."""
+    print(message)
+    stamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    try:
+        with log_lock:
+            with open(LOG_FILE, "a", encoding="utf-8") as f:
+                f.write(f"[{stamp}] {message.strip()}\n")
+    except OSError:
+        pass  # if the log cannot be written, the script keeps working
 
 
 def backup_world():
     """Save a zip copy of the world folder. Returns True if it worked."""
     with backup_lock:
         if not os.path.isdir("world"):
-            print("No 'world' folder found, skipping backup.")
+            log("No 'world' folder found, skipping backup.")
             return True
 
         os.makedirs("backups", exist_ok=True)
@@ -41,9 +56,9 @@ def backup_world():
             shutil.rmtree(temp_copy, ignore_errors=True)
             shutil.copytree("world", temp_copy, ignore=shutil.ignore_patterns("session.lock"))
             shutil.make_archive(os.path.join("backups", name), "zip", temp_copy)
-            print(f"Backup saved: backups/{name}.zip")
+            log(f"Backup saved: backups/{name}.zip")
         except Exception as error:
-            print(f"Backup failed: {error}")
+            log(f"Backup failed: {error}")
             return False
         finally:
             shutil.rmtree(temp_copy, ignore_errors=True)
@@ -52,14 +67,14 @@ def backup_world():
         zips = sorted(f for f in os.listdir("backups") if f.endswith(".zip"))
         for old in zips[:-KEEP_BACKUPS]:
             os.remove(os.path.join("backups", old))
-            print(f"Deleted old backup: {old}")
+            log(f"Deleted old backup: {old}")
         return True
 
 
 def backup_loop(stop_event):
     """Runs in the background and backs up the world every few minutes."""
     while not stop_event.wait(BACKUP_EVERY_MINUTES * 60):
-        print("\nAutomatic backup...")
+        log("Automatic backup...")
         backup_world()
 
 
@@ -119,7 +134,7 @@ def restore_backup():
         # 2. Save a safety backup of the current world
         print("Saving a safety backup of the current world...")
         if not backup_world():
-            print("Safety backup failed, so the restore was stopped. Nothing was changed.")
+            log("Safety backup failed, so the restore was stopped. Nothing was changed.")
             shutil.rmtree(temp_dir, ignore_errors=True)
             return
 
@@ -127,17 +142,17 @@ def restore_backup():
         if os.path.isdir("world"):
             shutil.rmtree("world")
         os.rename(temp_dir, "world")
-        print(f"Restored: {chosen}")
+        log(f"Restored: {chosen}")
         print("Choose 1 to start the server with the restored world.")
     except Exception as error:
-        print(f"Restore failed: {error}")
+        log(f"Restore failed: {error}")
         print("Your safety backup is in the backups folder.")
         shutil.rmtree(temp_dir, ignore_errors=True)
 
 
 def start_server():
     """Run the server. Restart it if it crashes. Back up every 30 minutes and when it stops."""
-    print("Starting server. Type 'stop' here to stop it safely.")
+    log("Starting server. Type 'stop' here to stop it safely.")
     print(f"A backup will be saved every {BACKUP_EVERY_MINUTES} minutes.")
 
     stop_event = threading.Event()
@@ -151,10 +166,10 @@ def start_server():
                 server = subprocess.Popen(command)
                 server.wait()
             except FileNotFoundError:
-                print("Java was not found. Install Java, then run `java -version` to check.")
+                log("Java was not found. Install Java, then run `java -version` to check.")
                 return
             except KeyboardInterrupt:
-                print("Stopping server...")
+                log("Stopping server...")
                 if server:
                     server.terminate()
                     server.wait()
@@ -164,21 +179,22 @@ def start_server():
             backup_world()
 
             if server.returncode == 0:
-                print("Server stopped normally.")
+                log("Server stopped normally.")
                 return
 
             restarts += 1
             if restarts > MAX_RESTARTS:
-                print("Server crashed too many times. Stopping.")
+                log("Server crashed too many times. Stopping.")
                 return
 
-            print(f"Server crashed. Restarting in 5 seconds ({restarts}/{MAX_RESTARTS})...")
+            log(f"Server crashed. Restarting in 5 seconds ({restarts}/{MAX_RESTARTS})...")
             time.sleep(5)
     finally:
         stop_event.set()  # stop the automatic backups when the server is done
 
 
 def main():
+    log("Manager started.")
     while True:
         print("\n=== Minecraft Server Manager ===")
         print("1. Start server")
@@ -197,6 +213,7 @@ def main():
         elif choice == "4":
             restore_backup()
         elif choice == "5":
+            log("Manager closed.")
             print("Goodbye!")
             break
         else:
